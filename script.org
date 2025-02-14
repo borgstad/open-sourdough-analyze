@@ -3,21 +3,18 @@
 :header-args: :session python
 :END:
 
+This exploratory analysis orgmode file creates videos from the pictures taken by this library: https://github.com/borgstad/open-sourdough-cam
+
 ** Mount remote diretory and activate environment
 
-Mount images to =./remote-data/=
+Mount images from remote server to =./remote-data/=
 #+begin_src bash
   nohup sshfs home:/projects/open-sourdough-cam remote-data
 #+end_src
 
-#+RESULTS:
-: nohup: ignoring input and appending output to 'nohup.out'
-
 #+BEGIN_SRC emacs-lisp
 (pyvenv-activate ".venv/")
 #+END_SRC
-
-#+RESULTS:
 
 ** Set variables
 
@@ -28,7 +25,6 @@ Mount images to =./remote-data/=
   # Path variables
   base_path = Path("/home/andreas/code/open-sourdough-analyze/remote-data")
   project_date = "2025-02-14"
-  # pics_directory_name = "pics-79bx5V"
   pics_directory_name = "pics-79bx5V"
 
   project_path = base_path / project_date
@@ -38,9 +34,7 @@ Mount images to =./remote-data/=
   video_name_timestamped = pics_directory_name + "-timestamp.avi"
 #+end_src
 
-#+RESULTS:
-
-** Video logic functionality
+** Video logic
 *** Video without timestamp
 #+begin_src python :results output
 from pathlib import Path
@@ -91,25 +85,11 @@ def create_video(base_path, date_path, pics_directory_name, video_name_pure, cod
     print(f"Video saved to {output_path}")
 #+end_src
 
-#+RESULTS:
 
 #+begin_src python :results output
 create_video(base_path, project_date, pics_directory_name, video_name_pure)
 #+end_src
 
-#+RESULTS:
-: Images directory: /home/andreas/code/open-sourdough-analyze/remote-data/2025-02-13/starter
-: Video saved to /home/andreas/code/open-sourdough-analyze/remote-data/2025-02-13/starter.avi
-
-*** Video with timestamp
-Create a video with a timestamp coded in the video written (using the =video_name_timestamped= as name).
-Sample name of files:
-1739539665.jpg
-1739539683.jpg
-1739539699.jpg
-1739539715.jpg
-1739539730.jpg
-The video should start from "00:00:00", corresponding to "HH:mm:ss", corresponding to the first image, and then increase the count
 
 #+begin_src python :results output
   from datetime import datetime, timedelta
@@ -169,12 +149,14 @@ The video should start from "00:00:00", corresponding to "HH:mm:ss", correspondi
       print(f"Video with timestamps saved to {output_path}")
 #+end_src
 
-#+RESULTS:
+
+#+begin_src python
+  create_video_with_timestamp(base_path, project_date, pics_directory_name, video_name_timestamped)
+#+end_src
+
+
 *** Call the functions
 #+begin_src python
   create_video(base_path, project_date, pics_directory_name, video_name_pure)
   create_video_with_timestamp(base_path, project_date, pics_directory_name, video_name_timestamped)
 #+end_src
-
-#+RESULTS:
-: None
