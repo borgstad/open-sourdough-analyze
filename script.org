@@ -1,0 +1,180 @@
+* Analyze data
+:PROPERTIES:
+:header-args: :session python
+:END:
+
+** Mount remote diretory and activate environment
+
+Mount images to =./remote-data/=
+#+begin_src bash
+  nohup sshfs home:/projects/open-sourdough-cam remote-data
+#+end_src
+
+#+RESULTS:
+: nohup: ignoring input and appending output to 'nohup.out'
+
+#+BEGIN_SRC emacs-lisp
+(pyvenv-activate ".venv/")
+#+END_SRC
+
+#+RESULTS:
+
+** Set variables
+
+#+begin_src python
+  from pathlib import Path
+  import cv2
+
+  # Path variables
+  base_path = Path("/home/andreas/code/open-sourdough-analyze/remote-data")
+  project_date = "2025-02-14"
+  # pics_directory_name = "pics-79bx5V"
+  pics_directory_name = "pics-79bx5V"
+
+  project_path = base_path / project_date
+
+  # Name of video artifacts
+  video_name_pure = pics_directory_name + ".avi"
+  video_name_timestamped = pics_directory_name + "-timestamp.avi"
+#+end_src
+
+#+RESULTS:
+
+** Video logic functionality
+*** Video without timestamp
+#+begin_src python :results output
+from pathlib import Path
+import cv2
+
+def create_video(base_path, date_path, pics_directory_name, video_name_pure, codec="DIVX", fps=15):
+    """
+    Creates a video from a sequence of images.
+
+    Parameters:
+    - base_path (Path): The base directory path.
+    - date_path (str): The date subdirectory.
+    - pics_directory_name (str): The name of the directory containing images.
+    - video_name_pure (str): The desired name for the output video file.
+    - codec (str): The codec to use for the video. Default is "DIVX".
+    - fps (int): Frames per second for the output video. Default is 15.
+    """
+    img_array = []
+    project_path = base_path / date_path
+    root = project_path / pics_directory_name
+    print(f"Images directory: {root}")
+
+    # Collect and sort image files
+    for filename in sorted(root.glob("*")):
+        img = cv2.imread(str(filename))
+        if img is None:
+            print(f"Warning: Unable to read {filename}. Skipping.")
+            continue
+        height, width, layers = img.shape
+        size = (width, height)
+        img_array.append(img)
+
+    if not img_array:
+        print("No images found to create a video.")
+        return
+
+    # Define the codec and create VideoWriter object
+    output_path = project_path / video_name_pure
+    fourcc = cv2.VideoWriter_fourcc(*codec)
+    out = cv2.VideoWriter(str(output_path), fourcc, fps, size)
+
+    # Write each frame to the video
+    for img in img_array:
+        out.write(img)
+
+    # Release the VideoWriter
+    out.release()
+    print(f"Video saved to {output_path}")
+#+end_src
+
+#+RESULTS:
+
+#+begin_src python :results output
+create_video(base_path, project_date, pics_directory_name, video_name_pure)
+#+end_src
+
+#+RESULTS:
+: Images directory: /home/andreas/code/open-sourdough-analyze/remote-data/2025-02-13/starter
+: Video saved to /home/andreas/code/open-sourdough-analyze/remote-data/2025-02-13/starter.avi
+
+*** Video with timestamp
+Create a video with a timestamp coded in the video written (using the =video_name_timestamped= as name).
+Sample name of files:
+1739539665.jpg
+1739539683.jpg
+1739539699.jpg
+1739539715.jpg
+1739539730.jpg
+The video should start from "00:00:00", corresponding to "HH:mm:ss", corresponding to the first image, and then increase the count
+
+#+begin_src python :results output
+  from datetime import datetime, timedelta
+
+  def create_video_with_timestamp(base_path, date_path, pics_directory_name, video_name_timestamped, codec="DIVX", fps=15):
+      """
+      Creates a video from a sequence of images, embedding a timestamp in each frame.
+
+      Parameters:
+      - base_path (Path): The base directory path.
+      - date_path (str): The date subdirectory.
+      - pics_directory_name (str): The name of the directory containing images.
+      - video_name_timestamped (str): The desired name for the output video file.
+      - codec (str): The codec to use for the video. Default is "DIVX".
+      - fps (int): Frames per second for the output video. Default is 15.
+      """
+      img_array = []
+      project_path = base_path / date_path
+      root = project_path / pics_directory_name
+      print(f"Images directory: {root}")
+
+      # Collect and sort image files
+      image_files = sorted(root.glob("*"))
+      if not image_files:
+          print("No images found to create a video.")
+          return
+
+      start_time = int(image_files[0].stem)
+      print(f"Starting timestamp based on first image: {start_time}")
+
+      for filename in image_files:
+          img = cv2.imread(str(filename))
+          if img is None:
+              print(f"Warning: Unable to read {filename}. Skipping.")
+              continue
+
+          # Add timestamp to the image
+          elapsed_seconds = int(filename.stem) - start_time
+          elapsed_time = str(timedelta(seconds=elapsed_seconds))
+          cv2.putText(img, elapsed_time, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+
+          height, width, layers = img.shape
+          size = (width, height)
+          img_array.append(img)
+
+      # Define the codec and create VideoWriter object
+      output_path = project_path / video_name_timestamped
+      fourcc = cv2.VideoWriter_fourcc(*codec)
+      out = cv2.VideoWriter(str(output_path), fourcc, fps, size)
+
+      # Write each frame to the video
+      for img in img_array:
+          out.write(img)
+
+      # Release the VideoWriter
+      out.release()
+      print(f"Video with timestamps saved to {output_path}")
+#+end_src
+
+#+RESULTS:
+*** Call the functions
+#+begin_src python
+  create_video(base_path, project_date, pics_directory_name, video_name_pure)
+  create_video_with_timestamp(base_path, project_date, pics_directory_name, video_name_timestamped)
+#+end_src
+
+#+RESULTS:
+: None
